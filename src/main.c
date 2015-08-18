@@ -2,13 +2,15 @@
  * @brief A program for the EA NXP LPC4088QSB to flash LED1, LED2, LED3 and LED4.
  *        LEDs are controlled by the joystick. LEFT -> LED1, DOWN -> LED2,
  *        UP -> LED3, RIGHT -> LED4, CENTER -> All LEDs
- *        This program uses a small, simple library of GPIO functions and the SysTick timer.
+ *        This program uses a small, simple library of GPIO functions, and the SysTick 
+ *        and TIMER0 timers.
  * @author David Kendall
  * @date August 2015
  */
 
 #include <stdbool.h>
 #include "gpioPin.h"
+#include "timer.h"
 
 
 typedef enum {
@@ -20,6 +22,7 @@ bool buttonPressedAndReleased(gpioPin_t *pin);
 void delay(uint32_t ms);
 void sysTickInitMs(void);
 void SysTick_Handler(void);
+void timer0_Handler(void);
 
 static gpioPin_t pin[9];
 static bool flashing[4] = {false, false, false, false};
@@ -36,6 +39,7 @@ int main() {
 	gpioPinInit(&pin[JRIGHT],  5, 4, INPUT_PIN);
 
 	sysTickInitMs();
+	timer0Init(2, timer0_Handler);
 	
 	while (true) {
 		if (buttonPressedAndReleased(&pin[JLEFT])) {
@@ -120,10 +124,20 @@ void SysTick_Handler(void) {
 	count += 1;
 	if (count == 100) {
 		count = 0;
-    for (i = LED1; i <= LED4; i++) {
+    for (i = LED1; i <= LED2; i++) {
 	    if (flashing[i]) {
 	     gpioPinToggle(&pin[i]);
 	    }
+	  }
+	}
+}
+
+void timer0_Handler(void) {
+	uint32_t i;
+	
+  for (i = LED3; i <= LED4; i++) {
+	  if (flashing[i]) {
+	   gpioPinToggle(&pin[i]);
 	  }
 	}
 }
