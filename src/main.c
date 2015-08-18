@@ -104,7 +104,7 @@ void delay(uint32_t ms) {
  */
 void sysTickInitMs(void) {
 	SysTick->CTRL = 0;                            /* disable timer during configuration */
-	SysTick->LOAD = SystemCoreClock / 1000 - 1UL; /* fill the RELOAD register with a value for 1ms */
+	SysTick->LOAD = SystemCoreClock / 100 - 1UL; /* fill the RELOAD register with a value for 10ms */
 	SysTick->VAL = 0UL;                           /* any value written here resets the value counter to 0 */
 	SysTick->CTRL = 0x07;                         /* enable the counter, enable the interrupt, choose CPU clock */
 }
@@ -118,7 +118,7 @@ void SysTick_Handler(void) {
 	uint32_t i;
 	
 	count += 1;
-	if (count == 1000) {
+	if (count == 100) {
 		count = 0;
     for (i = LED1; i <= LED4; i++) {
 	    if (flashing[i]) {
