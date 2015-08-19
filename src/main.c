@@ -20,9 +20,8 @@ typedef enum {
 
 bool buttonPressedAndReleased(gpioPin_t *pin);
 void delay(uint32_t ms);
-void sysTickInitMs(void);
-void SysTick_Handler(void);
-void timer0_Handler(void);
+void sysTickHandler(void);
+void timer0Handler(void);
 
 static gpioPin_t pin[9];
 static bool flashing[4] = {false, false, false, false};
@@ -38,8 +37,8 @@ int main() {
 	gpioPinInit(&pin[JCENTER], 5, 3, INPUT_PIN);
 	gpioPinInit(&pin[JRIGHT],  5, 4, INPUT_PIN);
 
-	sysTickInitMs();
-	timer0Init(2, timer0_Handler);
+	sysTickInit(1000, sysTickHandler);
+	timer0Init(2, timer0Handler);
 	
 	while (true) {
 		if (buttonPressedAndReleased(&pin[JLEFT])) {
@@ -103,26 +102,17 @@ void delay(uint32_t ms) {
 	}	
 }
 
-/*
- * @brief Configure the SysTick timer to generate an interrupt every millisecond
- */
-void sysTickInitMs(void) {
-	SysTick->CTRL = 0;                            /* disable timer during configuration */
-	SysTick->LOAD = SystemCoreClock / 100 - 1UL; /* fill the RELOAD register with a value for 10ms */
-	SysTick->VAL = 0UL;                           /* any value written here resets the value counter to 0 */
-	SysTick->CTRL = 0x07;                         /* enable the counter, enable the interrupt, choose CPU clock */
-}
 
 /*
  * @brief Handler for the SysTick interrupt
  * Flash any LEDs that should be flashed at 1 second interval
  */
-void SysTick_Handler(void) {
+void sysTickHandler(void) {
 	static uint32_t count = 0;
 	uint32_t i;
 	
 	count += 1;
-	if (count == 100) {
+	if (count == 1000) {
 		count = 0;
     for (i = LED1; i <= LED2; i++) {
 	    if (flashing[i]) {
@@ -132,7 +122,7 @@ void SysTick_Handler(void) {
 	}
 }
 
-void timer0_Handler(void) {
+void timer0Handler(void) {
 	uint32_t i;
 	
   for (i = LED3; i <= LED4; i++) {
