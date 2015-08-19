@@ -73,7 +73,11 @@ bool buttonPressedAndReleased(gpioPin_t *pin) {
 	bool result = false;
 	if (gpioPinVal(pin) == 0) {
 		while (gpioPinVal(pin) == 0) {
-			/* skip */
+			/* skip 
+			 * This is not a good idea.
+			 * The user can keep you in this loop
+			 * by holding the button down.
+			 */
 		}
 		result = true;
 	}
@@ -113,7 +117,7 @@ void sysTickHandler(void) {
 	
 	count += 1;
 	if (count == 1000) {
-		count = 0;
+    count = 0;
     for (i = LED1; i <= LED2; i++) {
 	    if (flashing[i]) {
 	     gpioPinToggle(&pin[i]);
