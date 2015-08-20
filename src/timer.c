@@ -3,6 +3,7 @@
 
 static void (*timer0UserDefinedHandler)();
 static void (*timer1UserDefinedHandler)();
+static void (*sysTickUserDefinedHandler)();
 
 void timer0Init(uint32_t tickHz, void (*handler)()) {
 	LPC_SC->PCONP |= (1UL << 1); /* ensure power to TIMER0 */
@@ -30,6 +31,20 @@ void timer1Init(uint32_t tickHz, void (*handler)()) {
 	LPC_TIM1->TCR |= (1UL << 0); /* enable the timer */
 }
 
+/*
+ * @brief Configure the SysTick timer to generate an interrupt 
+ * @param tickHz - frequency at which to generate the interrupt
+ * @param handler - the user-defined handler for the interrupt
+ */
+void sysTickInit(uint32_t tickHz, void (*handler)()) {
+	SysTick->CTRL = 0;                              /* disable timer during configuration */
+	SysTick->LOAD = SystemCoreClock / tickHz - 1UL; /* fill the RELOAD register with a value for the rate */
+	SysTick->VAL = 0UL;                             /* any value written here resets the value counter to 0 */
+	sysTickUserDefinedHandler = handler;
+	SysTick->CTRL = 0x07;                           /* enable the counter, enable the interrupt, choose CPU clock */
+}
+
+
 void TIMER0_IRQHandler(void) {
 	timer0UserDefinedHandler(); /* call the user-defined handler */
 	LPC_TIM0->IR |= (1UL << 0); /* clear the interrupt on MR0 */
@@ -38,5 +53,9 @@ void TIMER0_IRQHandler(void) {
 void TIMER1_IRQHandler(void) {
 	timer1UserDefinedHandler(); /* call the user-defined handler */
 	LPC_TIM1->IR |= (1UL << 0); /* clear the interrupt on MR0 */
+}
+
+void SysTick_Handler(void) {
+	sysTickUserDefinedHandler();
 }
 

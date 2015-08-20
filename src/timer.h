@@ -5,6 +5,7 @@
 
 void timer0Init(uint32_t tickHz, void (*handler)());
 void timer1Init(uint32_t tickHz, void (*handler)());
+void sysTickInit(uint32_t tickHz, void (*handler)());
 
 #endif
 
