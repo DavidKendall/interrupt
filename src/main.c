@@ -3,7 +3,7 @@
  *        LEDs are controlled by the joystick. LEFT -> LED1, DOWN -> LED2,
  *        UP -> LED3, RIGHT -> LED4, CENTER -> All LEDs
  *        This program uses a small, simple library of GPIO functions, and the 
- *        TIMER0 timer.
+ *        TIMER0 and TIMER1 timers.
  * @author David Kendall
  * @date August 2015
  */
@@ -20,8 +20,7 @@ typedef enum {
 
 bool buttonPressedAndReleased(gpioPin_t *pin);
 void delay(uint32_t ms);
-void timer0Handler(void);
-void timer1Handler(void);
+void sysTickHandler(void);
 
 static gpioPin_t pin[9];
 static bool flashing[4] = {false, false, false, false};
@@ -37,8 +36,8 @@ int main() {
 	gpioPinInit(&pin[JCENTER], 5, 3, INPUT_PIN);
 	gpioPinInit(&pin[JRIGHT],  5, 4, INPUT_PIN);
 
-	timer0Init(1, timer0Handler);
-
+	sysTickInit(1000, sysTickHandler);
+	
 	while (true) {
 		if (buttonPressedAndReleased(&pin[JLEFT])) {
 			flashing[LED1] = !flashing[LED1];
@@ -107,15 +106,21 @@ void delay(uint32_t ms) {
 
 
 /*
- * @brief Handler for the TIMER0 interrupt
- * Flash LED1, LED2, LED3 and LED4
+ * @brief Handler for the SysTick interrupt
+ * Flash LED1 .. LED4
  */
-void timer0Handler(void) {
+void sysTickHandler(void) {
 	uint32_t i;
+	static uint32_t count = 0;
 	
-  for (i = LED1; i <= LED4; i++) {
-	  if (flashing[i]) {
-	   gpioPinToggle(&pin[i]);
+	count += 1;
+	if (count == 1000) {
+		count = 0;
+    for (i = LED1; i <= LED4; i++) {
+	    if (flashing[i]) {
+	      gpioPinToggle(&pin[i]);
+	    }
 	  }
 	}
 }
+
