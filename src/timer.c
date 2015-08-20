@@ -44,6 +44,11 @@ void sysTickInit(uint32_t tickHz, void (*handler)()) {
 	SysTick->CTRL = 0x07;                           /* enable the counter, enable the interrupt, choose CPU clock */
 }
 
+void softTimerInit(softTimer_t *timer, uint32_t tickHz, void (*handler)()) {
+	timer->reloadValue = 1000 / tickHz; /* assumes SysTick interrupts at 1kHz */
+	timer->count = timer->reloadValue;
+	timer->handler = handler;
+}
 
 void TIMER0_IRQHandler(void) {
 	timer0UserDefinedHandler(); /* call the user-defined handler */

@@ -3,7 +3,7 @@
  *        LEDs are controlled by the joystick. LEFT -> LED1, DOWN -> LED2,
  *        UP -> LED3, RIGHT -> LED4, CENTER -> All LEDs
  *        This program uses a small, simple library of GPIO functions, and the 
- *        TIMER0 and TIMER1 timers.
+ *        SysTick timer to control several soft timers.
  * @author David Kendall
  * @date August 2015
  */
@@ -18,14 +18,27 @@ typedef enum {
 	JLEFT, JDOWN, JUP, JCENTER, JRIGHT
 } deviceNames_t;
 
+typedef enum {
+	LED1_TASK, LED2_TASK, LED3_TASK,
+	LED4_TASK, BUTTONS_TASK
+} taskNames_t;
+
 bool buttonPressedAndReleased(gpioPin_t *pin);
 void delay(uint32_t ms);
 void sysTickHandler(void);
+void led1Task(void);
+void led2Task(void);
+void led3Task(void);
+void led4Task(void);
+void buttonsTask(void);
 
 static gpioPin_t pin[9];
 static bool flashing[4] = {false, false, false, false};
+static softTimer_t timer[5];
 
 int main() {
+	taskNames_t t;
+	
 	gpioPinInit(&pin[LED1], 1, 18, OUTPUT_PIN);
 	gpioPinInit(&pin[LED2], 0, 13, OUTPUT_PIN);
 	gpioPinInit(&pin[LED3], 1, 13, OUTPUT_PIN);
@@ -38,26 +51,20 @@ int main() {
 
 	sysTickInit(1000, sysTickHandler);
 	
+	softTimerInit(&timer[LED1_TASK], 1, led1Task);
+	softTimerInit(&timer[LED2_TASK], 2, led2Task);
+	softTimerInit(&timer[LED3_TASK], 4, led3Task);
+	softTimerInit(&timer[LED4_TASK], 8, led4Task);
+	softTimerInit(&timer[BUTTONS_TASK], 10, buttonsTask);
+	
 	while (true) {
-		if (buttonPressedAndReleased(&pin[JLEFT])) {
-			flashing[LED1] = !flashing[LED1];
+		for (t = LED1_TASK; t <= BUTTONS_TASK; t++) {
+			if (timer[t].count == 0) {
+				timer[t].count = timer[t].reloadValue;
+				timer[t].handler();
+			}
 		}
-		if (buttonPressedAndReleased(&pin[JDOWN])) {
-			flashing[LED2] = !flashing[LED2];
-		}
-		if (buttonPressedAndReleased(&pin[JUP])) {
-			flashing[LED3] = !flashing[LED3];
-		}
-		if (buttonPressedAndReleased(&pin[JRIGHT])) {
-			flashing[LED4] = !flashing[LED4];
-		}
-		if (buttonPressedAndReleased(&pin[JCENTER])) {
-			flashing[LED1] = !flashing[LED1];
-			flashing[LED2] = !flashing[LED2];
-			flashing[LED3] = !flashing[LED3];
-			flashing[LED4] = !flashing[LED4];
-		}
-	}
+  }
 }
 
 /*
@@ -110,17 +117,57 @@ void delay(uint32_t ms) {
  * Flash LED1 .. LED4
  */
 void sysTickHandler(void) {
-	uint32_t i;
-	static uint32_t count = 0;
-	
-	count += 1;
-	if (count == 1000) {
-		count = 0;
-    for (i = LED1; i <= LED4; i++) {
-	    if (flashing[i]) {
-	      gpioPinToggle(&pin[i]);
-	    }
-	  }
+	taskNames_t t;
+   
+	for (t = LED1_TASK; t <= BUTTONS_TASK; t++) {
+		if (timer[t].count > 0) {
+		  timer[t].count -= 1;
+		}
+	}
+}
+
+void led1Task(void) {
+	if (flashing[LED1]) {
+	  gpioPinToggle(&pin[LED1]);
+	}
+}
+
+void led2Task(void) {
+	if (flashing[LED2]) {
+	  gpioPinToggle(&pin[LED2]);
+	}
+}
+
+void led3Task(void) {
+	if (flashing[LED3]) {
+	  gpioPinToggle(&pin[LED3]);
+	}
+}
+
+void led4Task(void) {
+	if (flashing[LED4]) {
+	  gpioPinToggle(&pin[LED4]);
+	}
+}
+
+void buttonsTask(void) {
+  if (buttonPressedAndReleased(&pin[JLEFT])) {
+		flashing[LED1] = !flashing[LED1];
+	}
+	if (buttonPressedAndReleased(&pin[JDOWN])) {
+		flashing[LED2] = !flashing[LED2];
+	}
+	if (buttonPressedAndReleased(&pin[JUP])) {
+		flashing[LED3] = !flashing[LED3];
+	}
+	if (buttonPressedAndReleased(&pin[JRIGHT])) {
+		flashing[LED4] = !flashing[LED4];
+	}
+	if (buttonPressedAndReleased(&pin[JCENTER])) {
+		flashing[LED1] = !flashing[LED1];
+		flashing[LED2] = !flashing[LED2];
+		flashing[LED3] = !flashing[LED3];
+		flashing[LED4] = !flashing[LED4];
 	}
 }
 
