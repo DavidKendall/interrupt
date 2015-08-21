@@ -19,22 +19,19 @@ typedef enum {
 } deviceNames_t;
 
 typedef enum {
-	LED1_TASK, LED2_TASK, LED3_TASK,
-	LED4_TASK, BUTTONS_TASK
+	LED1_2_TASK, LED3_4_TASK, BUTTONS_TASK
 } taskNames_t;
 
 bool buttonPressedAndReleased(gpioPin_t *pin);
 void delay(uint32_t ms);
 void sysTickHandler(void);
-void led1Task(void);
-void led2Task(void);
-void led3Task(void);
-void led4Task(void);
+void led12Task(void);
+void led34Task(void);
 void buttonsTask(void);
 
 static gpioPin_t pin[9];
 static bool flashing[4] = {false, false, false, false};
-static softTimer_t timer[5];
+static softTimer_t timer[3];
 
 int main() {
 	taskNames_t t;
@@ -51,14 +48,12 @@ int main() {
 
 	sysTickInit(1000, sysTickHandler);
 	
-	softTimerInit(&timer[LED1_TASK], 1, led1Task);
-	softTimerInit(&timer[LED2_TASK], 2, led2Task);
-	softTimerInit(&timer[LED3_TASK], 4, led3Task);
-	softTimerInit(&timer[LED4_TASK], 8, led4Task);
+	softTimerInit(&timer[LED1_2_TASK], 1, led12Task);
+	softTimerInit(&timer[LED3_4_TASK], 2, led34Task);
 	softTimerInit(&timer[BUTTONS_TASK], 10, buttonsTask);
 	
 	while (true) {
-		for (t = LED1_TASK; t <= BUTTONS_TASK; t++) {
+		for (t = LED1_2_TASK; t <= BUTTONS_TASK; t++) {
 			if (timer[t].count == 0) {
 				timer[t].count = timer[t].reloadValue;
 				timer[t].handler();
@@ -114,37 +109,31 @@ void delay(uint32_t ms) {
 
 /*
  * @brief Handler for the SysTick interrupt
- * Flash LED1 .. LED4
+ * Update the soft timers
  */
 void sysTickHandler(void) {
 	taskNames_t t;
    
-	for (t = LED1_TASK; t <= BUTTONS_TASK; t++) {
+	for (t = LED1_2_TASK; t <= BUTTONS_TASK; t++) {
 		if (timer[t].count > 0) {
 		  timer[t].count -= 1;
 		}
 	}
 }
 
-void led1Task(void) {
+void led12Task(void) {
 	if (flashing[LED1]) {
 	  gpioPinToggle(&pin[LED1]);
 	}
-}
-
-void led2Task(void) {
 	if (flashing[LED2]) {
 	  gpioPinToggle(&pin[LED2]);
 	}
 }
 
-void led3Task(void) {
+void led34Task(void) {
 	if (flashing[LED3]) {
 	  gpioPinToggle(&pin[LED3]);
 	}
-}
-
-void led4Task(void) {
 	if (flashing[LED4]) {
 	  gpioPinToggle(&pin[LED4]);
 	}
