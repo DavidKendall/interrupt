@@ -19,19 +19,21 @@ typedef enum {
 } deviceNames_t;
 
 typedef enum {
-	LED1_2_TASK, LED3_4_TASK, BUTTONS_TASK
+	LED1_TASK, LED2_TASK, LED3_TASK, LED4_TASK, BUTTONS_TASK
 } taskNames_t;
 
-bool buttonPressedAndReleased(gpioPin_t *pin);
+bool buttonPressedAndReleased(deviceNames_t button);
 void delay(uint32_t ms);
 void sysTickHandler(void);
-void led12Task(void);
-void led34Task(void);
+void led1Task(void);
+void led2Task(void);
+void led3Task(void);
+void led4Task(void);
 void buttonsTask(void);
 
 static gpioPin_t pin[9];
 static bool flashing[4] = {false, false, false, false};
-static softTimer_t timer[3];
+static softTimer_t timer[5];
 
 int main() {
 	taskNames_t t;
@@ -48,12 +50,14 @@ int main() {
 
 	sysTickInit(1000, sysTickHandler);
 	
-	softTimerInit(&timer[LED1_2_TASK], 1, led12Task);
-	softTimerInit(&timer[LED3_4_TASK], 2, led34Task);
+	softTimerInit(&timer[LED1_TASK], 1, led1Task);
+	softTimerInit(&timer[LED2_TASK], 2, led2Task);
+	softTimerInit(&timer[LED3_TASK], 4, led3Task);
+	softTimerInit(&timer[LED4_TASK], 8, led4Task);
 	softTimerInit(&timer[BUTTONS_TASK], 10, buttonsTask);
 	
 	while (true) {
-		for (t = LED1_2_TASK; t <= BUTTONS_TASK; t++) {
+		for (t = LED1_TASK; t <= BUTTONS_TASK; t++) {
 			if (timer[t].count == 0) {
 				timer[t].count = timer[t].reloadValue;
 				timer[t].handler();
@@ -63,24 +67,28 @@ int main() {
 }
 
 /*
- * @brief buttonPressedAndReleased(pin) tests the value of the pin.
- *        If the value is 0 then the pin is being pressed, so wait until the
- *        value is 1, i.e button has been released
- * @param pin - pointer to a gpioPin_t struct
+ * @brief buttonPressedAndReleased(button) tests to see if the button has
+ *        been pressed then released.
+ *        
+ * @param button - the name of the button
  * @result - true if button pressed then released, otherwise false
+ *
+ * If the value of the button's pin is 0 then the button is being pressed,
+ * just remember this in savedState.
+ * If the value of the button's pin is 1 then the button is released, so
+ * if the savedState of the button is 0, then the result is true, otherwise
+ * the result is false.
  */
-bool buttonPressedAndReleased(gpioPin_t *pin) {
+bool buttonPressedAndReleased(deviceNames_t button) {
 	bool result = false;
-	if (gpioPinVal(pin) == 0) {
-		while (gpioPinVal(pin) == 0) {
-			/* skip 
-			 * This is not a good idea.
-			 * The user can keep you in this loop
-			 * by holding the button down.
-			 */
-		}
+	uint32_t state;
+	static uint32_t savedState[9] = {1,1,1,1,1,1,1,1,1};
+	
+	state = gpioPinVal(&pin[button]);
+  if ((savedState[button] == 0) && (state == 1)) {
 		result = true;
 	}
+	savedState[button] = state;
 	return result;
 }
 
@@ -114,45 +122,51 @@ void delay(uint32_t ms) {
 void sysTickHandler(void) {
 	taskNames_t t;
    
-	for (t = LED1_2_TASK; t <= BUTTONS_TASK; t++) {
+	for (t = LED1_TASK; t <= BUTTONS_TASK; t++) {
 		if (timer[t].count > 0) {
 		  timer[t].count -= 1;
 		}
 	}
 }
 
-void led12Task(void) {
+void led1Task(void) {
 	if (flashing[LED1]) {
 	  gpioPinToggle(&pin[LED1]);
 	}
+}
+
+void led2Task(void) {
 	if (flashing[LED2]) {
 	  gpioPinToggle(&pin[LED2]);
 	}
 }
 
-void led34Task(void) {
+void led3Task(void) {
 	if (flashing[LED3]) {
 	  gpioPinToggle(&pin[LED3]);
 	}
+}
+
+void led4Task(void) {
 	if (flashing[LED4]) {
 	  gpioPinToggle(&pin[LED4]);
 	}
 }
 
 void buttonsTask(void) {
-  if (buttonPressedAndReleased(&pin[JLEFT])) {
+  if (buttonPressedAndReleased(JLEFT)) {
 		flashing[LED1] = !flashing[LED1];
 	}
-	if (buttonPressedAndReleased(&pin[JDOWN])) {
+	if (buttonPressedAndReleased(JDOWN)) {
 		flashing[LED2] = !flashing[LED2];
 	}
-	if (buttonPressedAndReleased(&pin[JUP])) {
+	if (buttonPressedAndReleased(JUP)) {
 		flashing[LED3] = !flashing[LED3];
 	}
-	if (buttonPressedAndReleased(&pin[JRIGHT])) {
+	if (buttonPressedAndReleased(JRIGHT)) {
 		flashing[LED4] = !flashing[LED4];
 	}
-	if (buttonPressedAndReleased(&pin[JCENTER])) {
+	if (buttonPressedAndReleased(JCENTER)) {
 		flashing[LED1] = !flashing[LED1];
 		flashing[LED2] = !flashing[LED2];
 		flashing[LED3] = !flashing[LED3];
