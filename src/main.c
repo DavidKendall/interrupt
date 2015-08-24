@@ -21,7 +21,6 @@ typedef enum {
 bool buttonPressedAndReleased(gpioPin_t *pin);
 void delay(uint32_t ms);
 void timer0Handler(void);
-void timer1Handler(void);
 
 static gpioPin_t pin[9];
 static bool flashing[4] = {false, false, false, false};
